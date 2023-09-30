@@ -25,6 +25,11 @@ server.post("/register", (req, res) => {
   const name = req.body.name;
   const lastName = req.body.lastName;
   const email = req.body.email;
+  const smartphone = req.body.smartphone;
+  const date = req.body.date;
+  const cep = req.body.cep;
+  const city = req.body.city;
+  const uf = req.body.uf;
   const password = req.body.password;
 
   con.query("SELECT * FROM usuarios WHERE email = ?", [email], (err, result) => {
@@ -35,7 +40,7 @@ server.post("/register", (req, res) => {
 
       if (result.length === 0) {
           bcrypt.hash(password, saltRounds, (err, hash) => {
-            con.query("INSERT INTO usuarios (nome, sobrenome, email, senha) VALUES (?, ?, ?, ?)", [name, lastName, email, hash], (err, result) => {
+            con.query("INSERT INTO usuarios (nome, sobrenome, email,celular, dataNascimento, cep, cidade, uf, senha) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [name, lastName, email,smartphone,date,cep,city,uf, hash], (err, result) => {
               if (err) {
                   console.error(err);
                   return res.status(500).json({ error: 'Erro ao cadastrar usuário.' });
@@ -52,30 +57,36 @@ server.post("/register", (req, res) => {
 
 });
 
-server.post("/", (req,res) => {
+server.post("/", (req, res) => {
   const con = connection.connection('local');
   const email = req.body.email;
   const password = req.body.password;
 
-  con.query("SELECT * FROM usuarios WHERE email = ? AND senha = ?", [email,password], (err,res) => {
-    if(err){
+  con.query("SELECT * FROM usuarios WHERE email = ?", [email], (err, result) => {
+    if (err) {
       console.error(err);
-      return res.status(500).json({ error: 'Erro ao realizar login.' });
-    }if(res.length > 0){
-      bcrypt.compare(password, res[0].password, (erro,result ) => {
-        if(result){
-          return res.status(200).json({ msg: "login efetuado com sucesso." });
-        }else{
-          return res.status(500).json({ msg: "Senha está incorreta." });
+      return res.status(500).json({ error: 'Erro ao verificar usuário.' });
+    }
+
+    if (result.length > 0) {
+      bcrypt.compare(password, result[0].senha, (error, response) => {
+        if (error) {
+          console.error(error);
+          return res.status(500).json({ error: 'Erro ao verificar senha.' });
+        }
+
+        if (response) {
+          return res.status(200).json({ msg: "Usuário logado" });
+        } else {
+          return res.status(401).json({ error: "Senha incorreta" });
         }
       });
-    }else{
-      return res.status(500).json({ error: 'Conta não encontrada.' });
+    } else {
+      return res.status(404).json({ error: "Usuário não encontrado" });
     }
-    
-  })
-
+  });
 });
+
 
 server.get("/users", (req, res) => {
   const con = connection.connection('local');
